@@ -43,9 +43,9 @@ class GobjectintrospectionConan(ConanFile):
         os.rename(extracted_dir, self._source_subfolder)
 
     def build(self):
-        pkg_config_paths=[ os.path.join(self.deps_cpp_info[i].rootpath, "lib", "pkgconfig") for i in ["glib","zlib"] ]
+        pkg_config_paths=[ os.path.join(self.deps_cpp_info[i].rootpath, "lib", "pkgconfig") for i in ["glib","zlib","libffi"] ]
         prefix = os.path.join(self.build_folder, self._build_subfolder, "install")
-        libpath = [ os.path.join(self.deps_cpp_info[i].rootpath, "lib") for i in ["glib"] ]
+        libpath = [ os.path.join(self.deps_cpp_info[i].rootpath, "lib") for i in ["glib","libffi"] ]
         meson = Meson(self)
         if self.settings.os == "Linux":
             with tools.environment_append({
@@ -61,7 +61,6 @@ class GobjectintrospectionConan(ConanFile):
         if self.settings.os == "Windows":
             binpath=[ os.path.join(self.deps_cpp_info[i].rootpath, "bin") for i in ["glib","zlib","libffi"] ]
             include = [os.path.join(self.deps_cpp_info["glib"].rootpath, "include")]
-            pkg_config_paths.extend([ os.path.join(self.deps_cpp_info["libffi"].rootpath, "lib", "pkgconfig") ])
             with tools.environment_append({
                 'PATH' : os.pathsep.join(binpath + [os.getenv('PATH')]),
                 'INCLUDE' : os.pathsep.join([os.getenv('INCLUDE')]+include),
