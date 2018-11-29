@@ -26,8 +26,8 @@ class GobjectintrospectionConan(ConanFile):
         config_scheme(self)
     
     def build_requirements(self):
-        if self.settings.os == "Linux":
-            self.build_requires("zlib/1.2.11@conanos/stable")
+        self.build_requires("zlib/1.2.11@conanos/stable")
+        self.build_requires("libffi/3.299999@conanos/stable")
 
     def config_options(self):
         if self.settings.os == "Windows":
@@ -57,21 +57,21 @@ class GobjectintrospectionConan(ConanFile):
                                 pkg_config_paths=pkg_config_paths)
                 meson.build()
                 self.run('ninja -C {0} install'.format(meson.build_dir))
-        #with tools.environment_append({"LD_LIBRARY_PATH":'%s/lib'%(self.deps_cpp_info["libffi"].rootpath)}):
-        #    with tools.chdir(self._source_subfolder):
-        #        meson = Meson(self)
-        #        _defs = { 'prefix':'%s/builddir/install'%(os.getcwd()), 'libdir':'lib',
-        #                  'cairo':'false', 'doctool':'true', 'gtk-doc': 'false',
-        #        }
-        #        meson.configure(
-        #            defs=_defs,
-        #            source_dir = '%s'%(os.getcwd()),
-        #            build_dir= '%s/builddir'%(os.getcwd()),
-        #            pkg_config_paths=['%s/lib/pkgconfig'%(self.deps_cpp_info["libffi"].rootpath),
-        #                              '%s/lib/pkgconfig'%(self.deps_cpp_info["glib"].rootpath)]
-        #            )
-        #        meson.build(args=['-j2'])
-        #        self.run('ninja -C {0} install'.format(meson.build_dir))
+        
+        if self.settings.os == "Windows":
+            binpath=[ os.path.join(self.deps_cpp_info[i].rootpath, "bin") for i in ["glib","zlib","libffi"] ]
+            include = [os.path.join(self.deps_cpp_info["glib"].rootpath, "include")]
+            pkg_config_paths.extend([ os.path.join(self.deps_cpp_info["libffi"].rootpath, "lib", "pkgconfig") ])
+            with tools.environment_append({
+                'PATH' : os.pathsep.join(binpath + [os.getenv('PATH')]),
+                'INCLUDE' : os.pathsep.join([os.getenv('INCLUDE')]+include),
+                'PKG_CONFIG_PATH' : os.pathsep.join(pkg_config_paths),
+                }):
+                meson.configure(defs={'prefix' : prefix},
+                                source_dir=self._source_subfolder, build_dir=self._build_subfolder,
+                                pkg_config_paths=pkg_config_paths)
+                meson.build()
+                self.run('ninja -C {0} install'.format(meson.build_dir))
 
     def package(self):
         self.copy("*", dst=self.package_folder, src=os.path.join(self.build_folder,self._build_subfolder, "install"))
